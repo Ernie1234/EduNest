@@ -13,18 +13,40 @@ async function bootstrap() {
   app.use(cookieParser());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
+  const frontendUrl = config.getOrThrow<string>('FRONTEND_URL');
+
   if(config.get('NODE_ENV') !== 'production') {
     const swaggerConfig = new DocumentBuilder()
-      .setTitle('Edunest API Doc')
-      .setDescription('EduNest APIs Documentation with API Doc in swagger ui.')
-      .setVersion('1.0')
+      .setTitle('EduNest API Documentation')
+      .setDescription('EduNest APIs Documentation with comprehensive API reference in Swagger UI.')
+      .setVersion('1.0.0')
+      .setContact('EduNest Support', frontendUrl, '')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'JWT Token (typically in Authorization header)',
+        },
+        'access_token',
+      )
+      .addCookieAuth('access_token', {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'access_token',
+        description: 'JWT access token stored in HTTP-only cookie',
+      })
       .build();
 
     const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('/docs', app, documentFactory);
+    SwaggerModule.setup('/docs', app, documentFactory, {
+      swaggerOptions: {
+        persistAuthorization: true,
+      },
+      customCss: '.swagger-ui .topbar { display: none }',
+    });
   }
 
-  const frontendUrl = config.getOrThrow<string>('FRONTEND_URL');
   app.enableCors({
     origin: frontendUrl,
     credentials: true,
