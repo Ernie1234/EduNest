@@ -18,6 +18,12 @@ async function bootstrap() {
       .setTitle('Edunest API Doc')
       .setDescription('EduNest APIs Documentation with API Doc in swagger ui.')
       .setVersion('1.0')
+      .addCookieAuth('access_token', {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'access_token',
+        description: 'Your JWT access token cookie',
+      })
       .build();
 
     const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
