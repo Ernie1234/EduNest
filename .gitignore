@@ -34,3 +34,9 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+
+# Local SQLite (API)
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/dev.db
+apps/api/dev.db-journal

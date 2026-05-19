@@ -1,6 +1,20 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "PORT",
+    "DATABASE_URL",
+    "JWT_SECRET",
+    "JWT_EXPIRES_IN_SECONDS",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_CALLBACK_URL",
+    "FRONTEND_URL",
+    "SUPER_ADMIN_EMAILS",
+    "LANDLORD_EMAILS",
+    "NEXT_PUBLIC_API_URL",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
