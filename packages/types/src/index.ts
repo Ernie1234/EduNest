@@ -1,4 +1,5 @@
-export type UserRole = "LANDLORD" | "SUPER_ADMIN" | "USER"
+
+export type UserRole = 'STUDENT' | 'TEACHER' | 'ADMIN'|  'SUPER_ADMIN';
 
 export type GoogleProfileInput = {
   googleId: string;

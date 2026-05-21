@@ -5,8 +5,16 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 @Controller('health')
 export class AppController {
   @Get()
-  @ApiOperation({ summary: 'Get a health request' })
-  @ApiResponse({ status: 200, description: 'The health status of the API.' })
+  @ApiOperation({ summary: 'Get API health status' })
+  @ApiResponse({
+    status: 200,
+    description: 'API is healthy and running',
+    schema: {
+      properties: {
+        ok: { type: 'boolean', example: true }
+      }
+    }
+  })
   health() {
     return { ok: true };
   }

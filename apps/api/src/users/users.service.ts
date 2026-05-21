@@ -22,10 +22,10 @@ export class UsersService {
     ) {
       return UserRole.SUPER_ADMIN;
     }
-    if (this.parseEmailList(process.env.LANDLORD_EMAILS).includes(normalized)) {
-      return UserRole.LANDLORD;
+    if (this.parseEmailList(process.env.TEACHER_EMAILS).includes(normalized)) {
+      return UserRole.TEACHER;
     }
-    return UserRole.USER;
+    return UserRole.STUDENT;
   }
 
   async upsertFromGoogle(input: GoogleProfileInput): Promise<User> {
