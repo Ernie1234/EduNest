@@ -30,10 +30,6 @@ async function bootstrap() {
         },
         'access_token',
       )
-      .addCookieAuth('access_token', {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'access_token',
         description: 'JWT access token stored in HTTP-only cookie',
       })
       .build();

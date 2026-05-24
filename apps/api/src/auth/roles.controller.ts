@@ -10,7 +10,7 @@ import { UserRole } from '@prisma/client';
 @Controller('roles')
 export class RolesController {
   @Get('teacher')
-  @Get('teacher')
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN)
   @ApiOperation({ summary: 'Test endpoint for Teacher or Super Admin role' })

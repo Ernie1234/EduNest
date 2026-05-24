@@ -1,7 +1,7 @@
 
 export type UserRole = 'STUDENT' | 'TEACHER' | 'ADMIN'|  'SUPER_ADMIN';
 
-export type GoogleProfileInput = {
+export interface GoogleProfileInput  {
   googleId: string;
   email: string;
   name?: string;
