@@ -12,13 +12,22 @@ import tseslint from "typescript-eslint"
 export const config = [
   js.configs.recommended,
   eslintConfigPrettier,
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.strict,
+  ...tseslint.configs.stylistic,
   {
     plugins: {
       turbo: turboPlugin,
     },
     rules: {
       "turbo/no-undeclared-env-vars": "warn",
+      "prefer-const": "error",
+      "no-var": "error",
+      "object-shorthand": "error",
+      "@typescript-eslint/consistent-type-definitions": ["warn", "interface"],
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+      ]
     },
   },
   {

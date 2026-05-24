@@ -10,7 +10,7 @@ export const AuthService = {
       const { data } = await apiClient.get<SessionUser>("/auth/me")
       return data
     } catch (error) {
-      // We return null on failure because "no session" is a valid state
+      console.error("Failed to fetch session", error)
       return null
     }
   },

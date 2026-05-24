@@ -9,9 +9,10 @@ export function useRoleDemo() {
     try {
       const { data } = await apiClient.get(path)
       setResponse(JSON.stringify(data))
-    } catch (error: any) {
+    } catch (error: unknown) {
+     const err = error as { response?: { data?: { message?: string } }; message?: string };
       setResponse(
-        error?.response?.data?.message || error.message || "Request failed"
+        err?.response?.data?.message || err?.message || "Request failed"
       )
     }
   }
