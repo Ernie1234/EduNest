@@ -10,7 +10,10 @@ export function useRoleDemo() {
       const { data } = await apiClient.get(path)
       setResponse(JSON.stringify(data))
     } catch (error: unknown) {
-     const err = error as { response?: { data?: { message?: string } }; message?: string };
+      const err = error as {
+        response?: { data?: { message?: string } }
+        message?: string
+      }
       setResponse(
         err?.response?.data?.message || err?.message || "Request failed"
       )

@@ -15,10 +15,12 @@ async function bootstrap() {
 
   const frontendUrl = config.getOrThrow<string>('FRONTEND_URL');
 
-  if(config.get('NODE_ENV') !== 'production') {
+  if (config.get('NODE_ENV') !== 'production') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('EduNest API Documentation')
-      .setDescription('EduNest APIs Documentation with comprehensive API reference in Swagger UI.')
+      .setDescription(
+        'EduNest APIs Documentation with comprehensive API reference in Swagger UI.',
+      )
       .setVersion('1.0.0')
       .setContact('EduNest Support', frontendUrl, '')
       .addBearerAuth(
@@ -29,12 +31,11 @@ async function bootstrap() {
           description: 'JWT Token (typically in Authorization header)',
         },
         'access_token',
-      )
-        description: 'JWT access token stored in HTTP-only cookie',
-      })
+      ) // <-- Fixed the stray text and broken brackets that were right below this
       .build();
 
-    const documentFactory = () => SwaggerModule.createDocument(app, swaggerConfig);
+    const documentFactory = () =>
+      SwaggerModule.createDocument(app, swaggerConfig);
     SwaggerModule.setup('/docs', app, documentFactory, {
       swaggerOptions: {
         persistAuthorization: true,

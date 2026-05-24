@@ -11,9 +11,9 @@ export class AppController {
     description: 'API is healthy and running',
     schema: {
       properties: {
-        ok: { type: 'boolean', example: true }
-      }
-    }
+        ok: { type: 'boolean', example: true },
+      },
+    },
   })
   health() {
     return { ok: true };

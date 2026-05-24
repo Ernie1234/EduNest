@@ -16,7 +16,12 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
 import type { AccessTokenPayload, GoogleProfileInput } from '@workspace/types';
-import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -31,11 +36,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Initiate Google OAuth2 login flow' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects to Google OAuth2 consent screen'
+    description: 'Redirects to Google OAuth2 consent screen',
   })
   @ApiResponse({
     status: 400,
-    description: 'Invalid OAuth2 configuration'
+    description: 'Invalid OAuth2 configuration',
   })
   @UseGuards(AuthGuard('google'))
   googleAuth(): void {
@@ -46,11 +51,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Google OAuth2 callback endpoint' })
   @ApiResponse({
     status: 302,
-    description: 'Redirects back to frontend with authenticated session'
+    description: 'Redirects back to frontend with authenticated session',
   })
   @ApiResponse({
     status: 401,
-    description: 'Google authentication failed'
+    description: 'Google authentication failed',
   })
   @UseGuards(AuthGuard('google'))
   async googleAuthCallback(
@@ -80,16 +85,26 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access_token')
   @ApiOperation({ summary: 'Get current user information' })
-  @ApiResponse({ status: 200, description: 'Returns the current user information', schema: {
-    properties: {
-      id: { type: 'string' },
-      email: { type: 'string' },
-      name: { type: 'string', nullable: true },
-      image: { type: 'string', nullable: true },
-      role: { type: 'string', enum: ['STUDENT', 'TEACHER', 'ADMIN', 'SUPER_ADMIN', 'PARENTS'] }
-    }
-  }})
-  @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid authentication token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the current user information',
+    schema: {
+      properties: {
+        id: { type: 'string' },
+        email: { type: 'string' },
+        name: { type: 'string', nullable: true },
+        image: { type: 'string', nullable: true },
+        role: {
+          type: 'string',
+          enum: ['STUDENT', 'TEACHER', 'ADMIN', 'SUPER_ADMIN', 'PARENTS'],
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - missing or invalid authentication token',
+  })
   async me(@CurrentUser() tokenUser: AccessTokenPayload) {
     const user = await this.users.findById(tokenUser.sub);
     if (!user) {
@@ -100,11 +115,15 @@ export class AuthController {
 
   @Post('logout')
   @ApiOperation({ summary: 'Logout the current user' })
-  @ApiResponse({ status: 200, description: 'Successfully logged out', schema: {
-    properties: {
-      ok: { type: 'boolean' }
-    }
-  }})
+  @ApiResponse({
+    status: 200,
+    description: 'Successfully logged out',
+    schema: {
+      properties: {
+        ok: { type: 'boolean' },
+      },
+    },
+  })
   logout(@Res({ passthrough: true }) res: Response) {
     const secure = process.env.NODE_ENV === 'production';
     res.clearCookie('access_token', {

@@ -1,14 +1,13 @@
+export type UserRole = "STUDENT" | "TEACHER" | "ADMIN" | "SUPER_ADMIN"
 
-export type UserRole = 'STUDENT' | 'TEACHER' | 'ADMIN'|  'SUPER_ADMIN';
+export interface GoogleProfileInput {
+  googleId: string
+  email: string
+  name?: string
+  image?: string
+}
 
-export interface GoogleProfileInput  {
-  googleId: string;
-  email: string;
-  name?: string;
-  image?: string;
-};
-
-export interface AccessTokenPayload  {
+export interface AccessTokenPayload {
   sub: string
   email: string
   role: string
@@ -33,21 +32,21 @@ export interface AuthState {
 }
 
 export interface Course {
-  id: string;
-  code: string;
-  title: string;
-  progress: number;
-  totalLessons: number;
-  completedLessons: number;
-  status: 'Active' | 'Completed' | 'Almost done';
-  lecturer: string;
+  id: string
+  code: string
+  title: string
+  progress: number
+  totalLessons: number
+  completedLessons: number
+  status: "Active" | "Completed" | "Almost done"
+  lecturer: string
 }
 
 export interface ChatMessage {
-  id: string;
-  sender: string;
-  avatar?: string;
-  content: string;
-  timestamp: string;
-  isSelf: boolean;
+  id: string
+  sender: string
+  avatar?: string
+  content: string
+  timestamp: string
+  isSelf: boolean
 }
