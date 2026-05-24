@@ -6,11 +6,11 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('roles')
 export class RolesController {
-  @Get('landlord')
+  @Get('teacher')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LANDLORD, UserRole.SUPER_ADMIN)
-  landlordOrSuper() {
-    return { ok: true, scope: 'landlord_or_super_admin' };
+  @Roles(UserRole.TEACHER, UserRole.SUPER_ADMIN)
+  teacherOrSuper() {
+    return { ok: true, scope: 'teacher_or_super_admin' };
   }
 
   @Get('super-admin')

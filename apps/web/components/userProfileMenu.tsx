@@ -40,6 +40,50 @@ import { cn } from "@workspace/ui/lib/utils"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 
+// Extracted outside to prevent recreating on every render
+const ActionGroup = ({ isMobile = false }: { isMobile?: boolean }) => (
+  <div
+    className={cn(
+      "flex",
+      isMobile ? "w-full flex-col gap-2" : "items-center gap-1"
+    )}
+  >
+    <Button
+      variant="ghost"
+      size={isMobile ? "default" : "icon"}
+      className={cn(
+        "h-9 rounded-lg border border-border text-muted-foreground hover:bg-muted",
+        isMobile ? "w-full justify-start px-3" : "w-9"
+      )}
+    >
+      <Settings className="h-[18px] w-[18px]" />
+      {isMobile && <span className="ml-2 text-sm">Settings</span>}
+    </Button>
+    <Button
+      variant="ghost"
+      size={isMobile ? "default" : "icon"}
+      className={cn(
+        "relative h-9 rounded-lg border border-border text-muted-foreground hover:bg-muted",
+        isMobile ? "w-full justify-start px-3" : "w-9"
+      )}
+    >
+      <Bell className="h-[18px] w-[18px]" />
+      <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 rounded-full bg-orange-500 ring-2 ring-background" />
+      {isMobile && <span className="ml-2 text-sm">Notifications</span>}
+    </Button>
+    <div
+      className={
+        isMobile
+          ? "flex items-center justify-between rounded-lg border bg-muted/20 p-1 px-2"
+          : ""
+      }
+    >
+      {isMobile && <span className="ml-1 text-xs font-medium">Theme</span>}
+      <ModeToggle />
+    </div>
+  </div>
+)
+
 const UserProfileMenu = () => {
   const pathname = usePathname()
   const { user, isLoading, logout } = useAuth()
@@ -47,49 +91,6 @@ const UserProfileMenu = () => {
   if (isLoading) {
     return <Skeleton className="h-9 w-32 rounded-xl" />
   }
-
-  const ActionGroup = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div
-      className={cn(
-        "flex",
-        isMobile ? "w-full flex-col gap-2" : "items-center gap-1"
-      )}
-    >
-      <Button
-        variant="ghost"
-        size={isMobile ? "default" : "icon"}
-        className={cn(
-          "h-9 rounded-lg border border-border text-muted-foreground hover:bg-muted",
-          isMobile ? "w-full justify-start px-3" : "w-9"
-        )}
-      >
-        <Settings className="h-[18px] w-[18px]" />
-        {isMobile && <span className="ml-2 text-sm">Settings</span>}
-      </Button>
-      <Button
-        variant="ghost"
-        size={isMobile ? "default" : "icon"}
-        className={cn(
-          "relative h-9 rounded-lg border border-border text-muted-foreground hover:bg-muted",
-          isMobile ? "w-full justify-start px-3" : "w-9"
-        )}
-      >
-        <Bell className="h-[18px] w-[18px]" />
-        <span className="absolute top-2.5 right-2.5 h-1.5 w-1.5 rounded-full bg-orange-500 ring-2 ring-background" />
-        {isMobile && <span className="ml-2 text-sm">Notifications</span>}
-      </Button>
-      <div
-        className={
-          isMobile
-            ? "flex items-center justify-between rounded-lg border bg-muted/20 p-1 px-2"
-            : ""
-        }
-      >
-        {isMobile && <span className="ml-1 text-xs font-medium">Theme</span>}
-        <ModeToggle />
-      </div>
-    </div>
-  )
 
   return (
     <div className="flex items-center gap-2 md:gap-4">
@@ -191,7 +192,7 @@ const UserProfileMenu = () => {
                       2 day streak
                     </span>
                     <span className="text-[10px] text-orange-700/70 italic">
-                      Don't break the chain!
+                      Don&apos;t break the chain! {/* Fixed apostrophe */}
                     </span>
                   </div>
                 </div>

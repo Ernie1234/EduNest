@@ -1,13 +1,13 @@
-export type UserRole = "LANDLORD" | "SUPER_ADMIN" | "USER"
+export type UserRole = "STUDENT" | "TEACHER" | "SUPER_ADMIN";
 
-export type GoogleProfileInput = {
+export interface GoogleProfileInput  {
   googleId: string;
   email: string;
   name?: string;
   image?: string;
 };
 
-export type AccessTokenPayload = {
+export interface AccessTokenPayload  {
   sub: string
   email: string
   role: string
