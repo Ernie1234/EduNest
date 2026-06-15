@@ -1,0 +1,93 @@
+name: edunest
+
+services:
+  api:
+    profiles: [api]
+    container_name: edunest-api
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
+      target: base
+      args:
+        APP_NAME: api
+    env_file:
+      - ../.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@edunest-postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://edunest-redis:6379
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - ${PORT:-8080}:${PORT:-8080}
+    volumes:
+      - ../apps/api:/app/apps/api
+      - /app/apps/api/node_modules
+      - /dev/null:/app/apps/api/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "pnpm exec prisma migrate dev --skip-seed && pnpm --filter edunest-api dev"
+
+  web:
+    profiles: [web]
+    container_name: edunest-web
+    restart: unless-stopped
+    build:
+      context: ..
+      dockerfile: container/Dockerfile
+      target: base
+      args:
+        APP_NAME: web
+    env_file:
+      - ../.env
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
+    ports:
+      - 3000:3000
+    volumes:
+      - ../apps/web:/app/apps/web
+      - /app/apps/web/node_modules
+    depends_on:
+      - api
+    command: pnpm --filter edunest-web dev
+
+  postgres:
+    container_name: edunest-postgres
+    image: pgvector/pgvector:pg17
+    restart: unless-stopped
+    ports:
+      - ${POSTGRES_PORT:-5432}:5432
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: edunest-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - ${REDIS_PORT:-6379}:6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:

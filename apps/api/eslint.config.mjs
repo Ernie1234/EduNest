@@ -5,6 +5,12 @@ import globals from "globals"
 export default [
   ...baseConfig,
   {
+    rules: {
+      // NestJS @Module(), @Global(), etc. are intentionally empty classes
+      "@typescript-eslint/no-extraneous-class": ["warn", { allowWithDecorator: true }],
+    },
+  },
+  {
     files: ["**/*.spec.ts", "test/**/*.ts"],
     languageOptions: {
       globals: {

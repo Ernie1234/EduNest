@@ -1,0 +1,30 @@
+# Dependencies
+**/node_modules
+**/.pnpm-store
+ 
+# Build artifacts
+**/dist
+**/.next
+**/.turbo
+**/build
+ 
+# Environment
+.env
+.env.*
+!.env.example
+ 
+# Git
+.git
+.gitignore
+ 
+# Editor
+.vscode
+.idea
+**/*.log
+ 
+# OS
+.DS_Store
+Thumbs.db
+ 
+# Docker itself
+container/docker-compose*.yml
