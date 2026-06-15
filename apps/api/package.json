@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "edunest-api",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -8,9 +8,10 @@
   "scripts": {
     "build": "prisma generate && nest build",
     "db:generate": "prisma generate",
+    "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
-    "dev": "nest start --watch",
+    "dev": "nest build && nest start --watch",
     "format": "prettier --write \"**/*.ts\"",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",

@@ -1,13 +1,13 @@
 {
   "extends": "@workspace/typescript-config/nestjs.json",
   "compilerOptions": {
+    "noEmit": false,
     "outDir": "./dist",
-    "baseUrl": "./",
-    "paths": {
-      "@workspace/types": ["../../packages/types/src/index.ts"],
-      "@workspace/types/*": ["../../packages/types/src/*"]
-    }
+    "rootDir": "src",
+    "module": "CommonJS",
+    "moduleResolution": "node10",
+    "ignoreDeprecations": "5.0"
   },
-  "include": ["src/**/*", "test/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "test", "**/*spec.ts"]
 }
