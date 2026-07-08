@@ -59,6 +59,9 @@ WORKDIR /app
 COPY --from=pruner /app/out/json/         .
 COPY --from=pruner /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 
+# Copy Prisma schema so the api postinstall script (prisma generate) can find it
+COPY apps/api/prisma/schema.prisma ./apps/api/prisma/schema.prisma
+
 RUN pnpm install --frozen-lockfile
 
 # =============================================================
@@ -67,6 +70,8 @@ RUN pnpm install --frozen-lockfile
 # =============================================================
 FROM installer AS builder
 ARG APP_NAME
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=pruner /app/out/full/ .
 RUN pnpm turbo build --filter=edunest-${APP_NAME}
 
@@ -87,6 +92,9 @@ COPY --from=builder /app/apps/api/package.json    ./package.json
 COPY --from=builder /app/apps/api/prisma          ./prisma
 COPY --from=builder /app/pnpm-lock.yaml           ./pnpm-lock.yaml
 COPY --from=builder /app/package.json             ./workspace-root.json
+
+# Strip workspace-only devDependencies that can't resolve outside the monorepo structure
+RUN pnpm pkg delete 'devDependencies["@workspace/eslint-config"]' 'devDependencies["@workspace/typescript-config"]' 'devDependencies["@workspace/types"]'
 
 # Install production deps only and generate prisma client
 RUN pnpm install --prod --ignore-scripts
