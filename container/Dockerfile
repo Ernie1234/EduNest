@@ -67,6 +67,8 @@ RUN pnpm install --frozen-lockfile
 # =============================================================
 FROM installer AS builder
 ARG APP_NAME
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY --from=pruner /app/out/full/ .
 RUN pnpm turbo build --filter=edunest-${APP_NAME}
 
