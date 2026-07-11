@@ -4,6 +4,8 @@
   "globalEnv": [
     "PORT",
     "DATABASE_URL",
+    "REDIS_URL",
+    "REDIS_PORT",
     "JWT_SECRET",
     "JWT_EXPIRES_IN_SECONDS",
     "GOOGLE_CLIENT_ID",

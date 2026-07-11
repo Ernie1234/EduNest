@@ -11,6 +11,7 @@
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
     "dev": "nest build && nest start --watch",
     "format": "prettier --write \"**/*.ts\"",
     "start": "nest start",
@@ -69,6 +70,9 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "5.9.3"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [
