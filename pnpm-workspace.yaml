@@ -8,7 +8,10 @@ allowBuilds:
   '@scarf/scarf': true
   core-js-pure: true
   esbuild: true
+  msgpackr-extract: false
   msw: true
   prisma: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - bullmq@5.80.2
