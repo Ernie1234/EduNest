@@ -91,6 +91,7 @@ COPY --from=builder /app/apps/api/dist            ./dist
 COPY --from=builder /app/apps/api/package.json    ./package.json
 COPY --from=builder /app/apps/api/prisma          ./prisma
 COPY --from=builder /app/pnpm-lock.yaml           ./pnpm-lock.yaml
+COPY --from=builder /app/pnpm-workspace.yaml      ./pnpm-workspace.yaml
 COPY --from=builder /app/package.json             ./workspace-root.json
 
 # Strip workspace-only devDependencies that can't resolve outside the monorepo structure
