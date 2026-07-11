@@ -7,21 +7,728 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===================== ENUMS =====================
+
 enum UserRole {
   STUDENT
   TEACHER
   ADMIN
   SUPER_ADMIN
-  PARENTS
+  PARENT
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  INACTIVE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum Semester {
+  FIRST
+  SECOND
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  DROPPED
+  COMPLETED
+}
+
+enum LessonContentType {
+  VIDEO
+  DOCUMENT
+  LINK
+  TEXT
+}
+
+enum LiveClassStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum CalendarEventType {
+  CLASS
+  EXAM
+  ASSIGNMENT_DEADLINE
+  MEETING
+  HOLIDAY
+  OTHER
+}
+
+enum AssessmentType {
+  CAT
+  ASSIGNMENT
+  EXAM
+  QUIZ
+  PROJECT
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  LATE
+  GRADED
+  MISSING
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum AdmissionStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  WAITLISTED
+}
+
+enum JobPostingStatus {
+  OPEN
+  CLOSED
+  DRAFT
+}
+
+enum JobApplicationStatus {
+  SUBMITTED
+  SHORTLISTED
+  INTERVIEWING
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+enum HostelGender {
+  MALE
+  FEMALE
+  MIXED
+}
+
+enum HostelAllocationStatus {
+  ACTIVE
+  VACATED
+}
+
+enum ChatRoomType {
+  DIRECT
+  GROUP
+  COURSE
+  LIVE_CLASS
+}
+
+enum ChatParticipantRole {
+  MEMBER
+  ADMIN
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum AiJobType {
+  LIVE_CLASS_SUMMARY
+  LIVE_CLASS_TRANSCRIPTION
+  TUTOR_CHAT
+  COURSE_RECOMMENDATION
+  ASSIGNMENT_FEEDBACK
+}
+
+enum AiJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum MediaKind {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+// ===================== IDENTITY & SCHOOLS =====================
+
+model School {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logoUrl   String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  departments      Department[]
+  academicSessions AcademicSession[]
+  hostels          Hostel[]
+  jobPostings      JobPosting[]
+  admissionCycles  AdmissionCycle[]
+  calendarEvents   CalendarEvent[]
+  announcements    Announcement[]
 }
 
 model User {
+  id          String     @id @default(cuid())
+  email       String     @unique
+  name        String?
+  image       String?
+  googleId    String     @unique
+  role        UserRole   @default(STUDENT)
+  status      UserStatus @default(ACTIVE)
+  phone       String?
+  gender      Gender?
+  dateOfBirth DateTime?
+  schoolId    String?
+  lastSeenAt  DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  school             School?                @relation(fields: [schoolId], references: [id])
+  studentProfile     StudentProfile?
+  teacherProfile     TeacherProfile?
+  parentProfile      ParentProfile?
+  courseInstructor   CourseInstructor[]
+  enrollments        Enrollment[]
+  lessonProgress     LessonProgress[]
+  liveClassHosted    LiveClass[]            @relation("LiveClassHost")
+  liveClassJoins     LiveClassParticipant[]
+  submissions        Submission[]
+  gradesReceived     Grade[]
+  gradesGiven        Grade[]                @relation("GradedBy")
+  attendance         AttendanceRecord[]
+  jobPostingsPosted  JobPosting[]           @relation("JobPostingPostedBy")
+  jobApplications    JobApplication[]
+  hostelAllocations  HostelAllocation[]
+  chatParticipants   ChatParticipant[]
+  chatMessages       ChatMessage[]
+  announcements      Announcement[]
+  complaintsRaised   Complaint[]            @relation("ComplaintRaisedBy")
+  complaintsAssigned Complaint[]            @relation("ComplaintAssignedTo")
+  complaintComments  ComplaintComment[]
+  aiJobsRequested    AiJob[]
+  mediaUploaded      Media[]
+
+  @@index([schoolId])
+}
+
+model StudentProfile {
+  id           String    @id @default(cuid())
+  userId       String    @unique
+  matricNumber String    @unique
+  departmentId String?
+  level        Int?
+  admittedAt   DateTime?
+
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department?     @relation(fields: [departmentId], references: [id])
+  guardians  ParentStudent[]
+}
+
+model TeacherProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  staffId      String  @unique
+  departmentId String?
+  title        String?
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id])
+}
+
+model ParentProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  children ParentStudent[]
+}
+
+model ParentStudent {
+  id               String @id @default(cuid())
+  parentProfileId  String
+  studentProfileId String
+
+  parentProfile  ParentProfile  @relation(fields: [parentProfileId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([parentProfileId, studentProfileId])
+}
+
+model Department {
+  id       String @id @default(cuid())
+  schoolId String
+  name     String
+  code     String
+
+  school               School                 @relation(fields: [schoolId], references: [id])
+  courses              Course[]
+  students             StudentProfile[]
+  teachers             TeacherProfile[]
+  admissionApplications AdmissionApplication[]
+
+  @@unique([schoolId, code])
+}
+
+// ===================== ACADEMICS =====================
+
+model AcademicSession {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  image     String?
-  googleId  String   @unique
-  role      UserRole @default(STUDENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  schoolId  String
+  name      String
+  semester  Semester
+  startDate DateTime
+  endDate   DateTime
+
+  school          School           @relation(fields: [schoolId], references: [id])
+  courseOfferings CourseOffering[]
+
+  @@unique([schoolId, name, semester])
+}
+
+model Course {
+  id           String  @id @default(cuid())
+  departmentId String
+  code         String
+  title        String
+  description  String?
+  creditUnits  Int
+  level        Int?
+
+  department Department       @relation(fields: [departmentId], references: [id])
+  offerings  CourseOffering[]
+
+  @@unique([departmentId, code])
+}
+
+model CourseOffering {
+  id                String @id @default(cuid())
+  courseId          String
+  academicSessionId String
+
+  course          Course          @relation(fields: [courseId], references: [id])
+  academicSession AcademicSession @relation(fields: [academicSessionId], references: [id])
+
+  instructors    CourseInstructor[]
+  enrollments    Enrollment[]
+  modules        CourseModule[]
+  liveClasses    LiveClass[]
+  assessments    Assessment[]
+  calendarEvents CalendarEvent[]
+  chatRoom       ChatRoom?
+
+  @@unique([courseId, academicSessionId])
+}
+
+model CourseInstructor {
+  id               String  @id @default(cuid())
+  courseOfferingId String
+  userId           String
+  isPrimary        Boolean @default(true)
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id])
+
+  @@unique([courseOfferingId, userId])
+}
+
+model Enrollment {
+  id               String           @id @default(cuid())
+  courseOfferingId String
+  studentId        String
+  status           EnrollmentStatus @default(ACTIVE)
+  enrolledAt       DateTime         @default(now())
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  student        User           @relation(fields: [studentId], references: [id])
+
+  @@unique([courseOfferingId, studentId])
+}
+
+model CourseModule {
+  id               String @id @default(cuid())
+  courseOfferingId String
+  title            String
+  order            Int
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
+  lessons        Lesson[]
+}
+
+model Lesson {
+  id              String            @id @default(cuid())
+  courseModuleId  String
+  title           String
+  contentType     LessonContentType
+  mediaId         String?
+  order           Int
+  durationMinutes Int?
+
+  courseModule CourseModule     @relation(fields: [courseModuleId], references: [id], onDelete: Cascade)
+  media        Media?           @relation(fields: [mediaId], references: [id])
+  progress     LessonProgress[]
+}
+
+model LessonProgress {
+  id          String    @id @default(cuid())
+  lessonId    String
+  studentId   String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student User   @relation(fields: [studentId], references: [id])
+
+  @@unique([lessonId, studentId])
+}
+
+// ===================== LIVE CLASSES & CALENDAR =====================
+
+model LiveClass {
+  id               String          @id @default(cuid())
+  courseOfferingId String
+  hostId           String
+  title            String
+  scheduledStart   DateTime
+  scheduledEnd     DateTime
+  status           LiveClassStatus @default(SCHEDULED)
+  recordingMediaId String?
+
+  courseOffering CourseOffering         @relation(fields: [courseOfferingId], references: [id])
+  host           User                   @relation("LiveClassHost", fields: [hostId], references: [id])
+  recording      Media?                 @relation(fields: [recordingMediaId], references: [id])
+  participants   LiveClassParticipant[]
+  chatRoom       ChatRoom?
+  aiJobs         AiJob[]
+  attendance     AttendanceRecord[]
+
+  @@index([courseOfferingId])
+}
+
+model LiveClassParticipant {
+  id          String    @id @default(cuid())
+  liveClassId String
+  userId      String
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+
+  liveClass LiveClass @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([liveClassId, userId])
+}
+
+model CalendarEvent {
+  id               String            @id @default(cuid())
+  schoolId         String
+  courseOfferingId String?
+  title            String
+  type             CalendarEventType
+  startAt          DateTime
+  endAt            DateTime
+
+  school         School          @relation(fields: [schoolId], references: [id])
+  courseOffering CourseOffering? @relation(fields: [courseOfferingId], references: [id])
+
+  @@index([schoolId, startAt])
+}
+
+// ===================== ASSESSMENTS & SCORING =====================
+
+model Assessment {
+  id               String         @id @default(cuid())
+  courseOfferingId String
+  title            String
+  type             AssessmentType
+  maxScore         Float
+  weightPercent    Float
+  dueAt            DateTime?
+
+  courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id])
+  submissions    Submission[]
+  grades         Grade[]
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  assessmentId String
+  studentId    String
+  mediaId      String?
+  content      String?
+  status       SubmissionStatus @default(SUBMITTED)
+  submittedAt  DateTime         @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+  media      Media?     @relation(fields: [mediaId], references: [id])
+
+  @@unique([assessmentId, studentId])
+}
+
+model Grade {
+  id           String   @id @default(cuid())
+  assessmentId String
+  studentId    String
+  score        Float
+  feedback     String?
+  gradedById   String?
+  gradedAt     DateTime @default(now())
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+  gradedBy   User?      @relation("GradedBy", fields: [gradedById], references: [id])
+
+  @@unique([assessmentId, studentId])
+}
+
+model AttendanceRecord {
+  id          String           @id @default(cuid())
+  liveClassId String?
+  studentId   String
+  date        DateTime         @default(now())
+  status      AttendanceStatus
+
+  liveClass LiveClass? @relation(fields: [liveClassId], references: [id])
+  student   User       @relation(fields: [studentId], references: [id])
+
+  @@index([studentId, date])
+}
+
+// ===================== ADMISSIONS =====================
+
+model AdmissionCycle {
+  id       String   @id @default(cuid())
+  schoolId String
+  name     String
+  opensAt  DateTime
+  closesAt DateTime
+
+  school       School                 @relation(fields: [schoolId], references: [id])
+  applications AdmissionApplication[]
+}
+
+model AdmissionApplication {
+  id                  String          @id @default(cuid())
+  admissionCycleId    String
+  applicantName       String
+  applicantEmail      String
+  desiredDepartmentId String?
+  status              AdmissionStatus @default(SUBMITTED)
+  documentsMediaIds   String[]
+  submittedAt         DateTime        @default(now())
+
+  admissionCycle    AdmissionCycle @relation(fields: [admissionCycleId], references: [id])
+  desiredDepartment Department?    @relation(fields: [desiredDepartmentId], references: [id])
+}
+
+// ===================== STAFF JOBS & APPLICATIONS =====================
+
+model JobPosting {
+  id             String           @id @default(cuid())
+  schoolId       String
+  postedById     String
+  title          String
+  department     String?
+  description    String
+  employmentType String
+  status         JobPostingStatus @default(DRAFT)
+  closesAt       DateTime?
+
+  school       School            @relation(fields: [schoolId], references: [id])
+  postedBy     User              @relation("JobPostingPostedBy", fields: [postedById], references: [id])
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id             String               @id @default(cuid())
+  jobPostingId   String
+  applicantId    String?
+  applicantName  String
+  applicantEmail String
+  resumeMediaId  String?
+  coverLetter    String?
+  status         JobApplicationStatus @default(SUBMITTED)
+  submittedAt    DateTime             @default(now())
+
+  jobPosting JobPosting @relation(fields: [jobPostingId], references: [id])
+  applicant  User?      @relation(fields: [applicantId], references: [id])
+  resume     Media?     @relation(fields: [resumeMediaId], references: [id])
+}
+
+// ===================== HOSTELS =====================
+
+model Hostel {
+  id       String       @id @default(cuid())
+  schoolId String
+  name     String
+  gender   HostelGender
+  address  String?
+
+  school School       @relation(fields: [schoolId], references: [id])
+  rooms  HostelRoom[]
+}
+
+model HostelRoom {
+  id         String @id @default(cuid())
+  hostelId   String
+  roomNumber String
+  capacity   Int
+
+  hostel      Hostel             @relation(fields: [hostelId], references: [id])
+  allocations HostelAllocation[]
+
+  @@unique([hostelId, roomNumber])
+}
+
+model HostelAllocation {
+  id           String                 @id @default(cuid())
+  hostelRoomId String
+  studentId    String
+  status       HostelAllocationStatus @default(ACTIVE)
+  allocatedAt  DateTime               @default(now())
+  vacatedAt    DateTime?
+
+  hostelRoom HostelRoom @relation(fields: [hostelRoomId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+}
+
+// ===================== CHATS & ANNOUNCEMENTS =====================
+
+model ChatRoom {
+  id               String       @id @default(cuid())
+  type             ChatRoomType
+  name             String?
+  courseOfferingId String?      @unique
+  liveClassId      String?      @unique
+  createdAt        DateTime     @default(now())
+
+  courseOffering CourseOffering?   @relation(fields: [courseOfferingId], references: [id])
+  liveClass      LiveClass?        @relation(fields: [liveClassId], references: [id])
+  participants   ChatParticipant[]
+  messages       ChatMessage[]
+}
+
+model ChatParticipant {
+  id         String              @id @default(cuid())
+  chatRoomId String
+  userId     String
+  role       ChatParticipantRole @default(MEMBER)
+  joinedAt   DateTime            @default(now())
+
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([chatRoomId, userId])
+}
+
+model ChatMessage {
+  id         String    @id @default(cuid())
+  chatRoomId String
+  senderId   String
+  content    String?
+  mediaId    String?
+  createdAt  DateTime  @default(now())
+  editedAt   DateTime?
+
+  chatRoom ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  sender   User     @relation(fields: [senderId], references: [id])
+  media    Media?   @relation(fields: [mediaId], references: [id])
+
+  @@index([chatRoomId, createdAt])
+}
+
+model Announcement {
+  id          String   @id @default(cuid())
+  schoolId    String
+  authorId    String
+  title       String
+  body        String
+  publishedAt DateTime @default(now())
+
+  school School @relation(fields: [schoolId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+}
+
+// ===================== COMPLAINTS =====================
+
+model Complaint {
+  id           String          @id @default(cuid())
+  raisedById   String
+  assignedToId String?
+  category     String
+  subject      String
+  description  String
+  status       ComplaintStatus @default(OPEN)
+  createdAt    DateTime        @default(now())
+  resolvedAt   DateTime?
+
+  raisedBy   User               @relation("ComplaintRaisedBy", fields: [raisedById], references: [id])
+  assignedTo User?              @relation("ComplaintAssignedTo", fields: [assignedToId], references: [id])
+  comments   ComplaintComment[]
+}
+
+model ComplaintComment {
+  id          String   @id @default(cuid())
+  complaintId String
+  authorId    String
+  content     String
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id])
+}
+
+// ===================== AI JOBS =====================
+
+model AiJob {
+  id            String      @id @default(cuid())
+  type          AiJobType
+  status        AiJobStatus @default(PENDING)
+  requestedById String
+  liveClassId   String?
+  inputPayload  Json?
+  resultText    String?
+  resultMediaId String?
+  error         String?
+  attempts      Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  requestedBy User       @relation(fields: [requestedById], references: [id])
+  liveClass   LiveClass? @relation(fields: [liveClassId], references: [id])
+  resultMedia Media?     @relation(fields: [resultMediaId], references: [id])
+}
+
+// ===================== MEDIA =====================
+
+model Media {
+  id              String    @id @default(cuid())
+  uploaderId      String
+  kind            MediaKind
+  url             String
+  mimeType        String
+  sizeBytes       Int
+  durationSeconds Int?
+  createdAt       DateTime  @default(now())
+
+  uploader              User             @relation(fields: [uploaderId], references: [id])
+  lessons               Lesson[]
+  submissions           Submission[]
+  liveClassRecordings   LiveClass[]
+  jobApplicationResumes JobApplication[]
+  chatMessages          ChatMessage[]
+  aiJobResults          AiJob[]
 }
