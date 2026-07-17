@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { useState, ReactNode } from "react"
+import { Toaster } from "@workspace/ui/components/sonner"
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -20,7 +21,12 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <ThemeProvider>
+        {children}
+        {/* Toaster resolves its own theme internally (see sonner.tsx) —
+            it must be rendered here, inside ThemeProvider, to do so correctly. */}
+        <Toaster richColors closeButton />
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

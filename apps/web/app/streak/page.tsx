@@ -10,16 +10,28 @@ import { StreakFreezeCard } from "@/components/streak/streak-freeze-card"
 import { StreakStatsRow } from "@/components/streak/streak-stats-row"
 
 export default function StreakPage() {
-  const { data: streak, isLoading, isError, applyFreeze, isApplyingFreeze, freezeError } =
-    useStreak()
+  const {
+    data: streak,
+    isLoading,
+    isError,
+    applyFreeze,
+    isApplyingFreeze,
+    freezeError,
+  } = useStreak()
 
   return (
     <div className="flex min-h-svh w-full flex-col">
       <Header />
       <Nav />
       <div className="flex flex-col gap-4 p-5">
-        {isLoading && <p className="text-sm text-muted-foreground">Loading your streak…</p>}
-        {isError && <p className="text-sm text-destructive">Couldn&apos;t load your streak.</p>}
+        {isLoading && (
+          <p className="text-sm text-muted-foreground">Loading your streak…</p>
+        )}
+        {isError && (
+          <p className="text-sm text-destructive">
+            Couldn&apos;t load your streak.
+          </p>
+        )}
 
         {streak && (
           <>
@@ -36,7 +48,10 @@ export default function StreakPage() {
                 onUseFreeze={() => applyFreeze(undefined)}
                 isUsingFreeze={isApplyingFreeze}
               />
-              {freezeError && <p className="text-sm text-destructive">{freezeError}</p>}
+
+              {freezeError && (
+                <p className="text-sm text-destructive">{freezeError}</p>
+              )}
             </div>
 
             <StreakStatsRow
