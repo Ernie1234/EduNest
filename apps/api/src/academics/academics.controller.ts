@@ -54,10 +54,24 @@ export class AcademicsController {
   }
 
   @Get('course-offerings/:id/assessments')
-  @ApiOperation({ summary: 'List assessments for a course offering' })
+  @ApiOperation({
+    summary:
+      "List assessments for a course offering, including the caller's own grade per assessment (null if ungraded)",
+  })
   @ApiResponse({ status: 200, description: 'Assessments returned' })
-  listAssessments(@Param('id') id: string) {
-    return this.academicsService.listAssessments(id);
+  listAssessments(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.academicsService.listAssessments(id, user.sub);
+  }
+
+  @Get('course-offerings/:id')
+  @ApiOperation({
+    summary:
+      "Get full course offering detail: course, department, session, instructors, modules/lessons with the caller's own lesson progress, and enrollment status",
+  })
+  @ApiResponse({ status: 200, description: 'Course offering detail returned' })
+  @ApiResponse({ status: 404, description: 'Course offering not found' })
+  getCourseOfferingDetail(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.academicsService.getCourseOfferingDetail(id, user.sub);
   }
 
   @Post('course-offerings/:id/live-classes')

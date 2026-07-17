@@ -24,16 +24,19 @@ export class CalendarController {
   })
   @ApiQuery({ name: 'from', required: false, description: 'ISO date' })
   @ApiQuery({ name: 'to', required: false, description: 'ISO date' })
+  @ApiQuery({ name: 'courseOfferingId', required: false })
   @ApiResponse({ status: 200, description: 'Calendar events returned' })
   listEvents(
     @CurrentUser() user: AccessTokenPayload,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('courseOfferingId') courseOfferingId?: string,
   ) {
     return this.calendarService.listForCaller(
       user.sub,
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
+      courseOfferingId,
     );
   }
 

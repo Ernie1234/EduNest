@@ -103,6 +103,8 @@ export type CalendarEventType =
   | "ASSIGNMENT_DEADLINE"
   | "MEETING"
   | "HOLIDAY"
+  | "TERM"
+  | "EXAM_WINDOW"
   | "OTHER"
 
 export interface CalendarEventSummary {
@@ -111,6 +113,7 @@ export interface CalendarEventSummary {
   type: CalendarEventType
   startAt: string
   endAt: string
+  courseOfferingId?: string | null
 }
 
 // ===================== ADMISSIONS =====================
@@ -184,4 +187,97 @@ export interface AnnouncementSummary {
   title: string
   body: string
   publishedAt: string
+}
+
+// ===================== COURSE OFFERING DETAIL =====================
+
+export type LessonContentType = "VIDEO" | "DOCUMENT" | "LINK" | "TEXT"
+
+export interface MediaSummary {
+  id: string
+  kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"
+  url: string
+  mimeType: string
+  durationSeconds?: number | null
+}
+
+export interface LessonDetail {
+  id: string
+  title: string
+  contentType: LessonContentType
+  order: number
+  durationMinutes: number | null
+  media: MediaSummary | null
+  completed: boolean
+}
+
+export interface CourseModuleDetail {
+  id: string
+  title: string
+  order: number
+  lessons: LessonDetail[]
+}
+
+export interface CourseInstructorSummary {
+  userId: string
+  name: string | null
+  image: string | null
+  isPrimary: boolean
+  title: string | null
+  department: string | null
+}
+
+export interface ScoringSchemaComponentSummary {
+  id: string
+  name: string
+  weightPercent: number
+}
+
+export interface ScoringSchemaSummary {
+  id: string
+  name: string
+  isActive: boolean
+  components: ScoringSchemaComponentSummary[]
+}
+
+export interface CourseOfferingDetail {
+  id: string
+  course: {
+    id: string
+    code: string
+    title: string
+    description: string | null
+    creditUnits: number
+    level: number | null
+    department: { id: string; name: string; code: string }
+  }
+  academicSession: {
+    id: string
+    name: string
+    semester: "FIRST" | "SECOND"
+    startDate: string
+    endDate: string
+  }
+  scoringSchema: ScoringSchemaSummary | null
+  instructors: CourseInstructorSummary[]
+  modules: CourseModuleDetail[]
+  totalLessons: number
+  completedLessons: number
+  enrollmentStatus: "ACTIVE" | "DROPPED" | "COMPLETED" | null
+  nextLiveClass: LiveClassSummary | null
+}
+
+// ===================== ASSESSMENTS WITH GRADE =====================
+
+export type AssessmentType = "CAT" | "ASSIGNMENT" | "EXAM" | "QUIZ" | "PROJECT"
+
+export interface AssessmentWithGrade {
+  id: string
+  courseOfferingId: string
+  title: string
+  type: AssessmentType
+  maxScore: number
+  weightPercent: number
+  dueAt: string | null
+  myGrade: number | null
 }

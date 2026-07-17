@@ -21,7 +21,12 @@ export class CalendarService {
 
   /** Same as listEvents, but non-admin callers only see published events
    * matching their role (or school-wide events with an empty audience). */
-  async listForCaller(callerId: string, from?: Date, to?: Date) {
+  async listForCaller(
+    callerId: string,
+    from?: Date,
+    to?: Date,
+    courseOfferingId?: string,
+  ) {
     const caller = await this.prisma.user.findUniqueOrThrow({
       where: { id: callerId },
       select: { schoolId: true, role: true },
@@ -33,6 +38,7 @@ export class CalendarService {
     return this.prisma.calendarEvent.findMany({
       where: {
         schoolId: caller.schoolId,
+        ...(courseOfferingId ? { courseOfferingId } : {}),
         ...(from && to ? { startAt: { gte: from }, endAt: { lte: to } } : {}),
         ...(isAdminTier
           ? {}

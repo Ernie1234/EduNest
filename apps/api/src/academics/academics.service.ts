@@ -27,6 +27,88 @@ export class AcademicsService {
     });
   }
 
+  async getCourseOfferingDetail(courseOfferingId: string, callerId: string) {
+    const offering = await this.prisma.courseOffering.findUnique({
+      where: { id: courseOfferingId },
+      include: {
+        course: { include: { department: true } },
+        academicSession: true,
+        scoringSchema: { include: { components: true } },
+        instructors: {
+          include: { user: { include: { teacherProfile: { include: { department: true } } } } },
+        },
+        modules: {
+          orderBy: { order: 'asc' },
+          include: {
+            lessons: {
+              orderBy: { order: 'asc' },
+              include: {
+                media: true,
+                progress: { where: { studentId: callerId } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!offering) {
+      throw new NotFoundException('Course offering not found');
+    }
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { courseOfferingId_studentId: { courseOfferingId, studentId: callerId } },
+    });
+
+    const nextLiveClass = await this.prisma.liveClass.findFirst({
+      where: {
+        courseOfferingId,
+        OR: [{ status: 'LIVE' }, { status: 'SCHEDULED', scheduledStart: { gte: new Date() } }],
+      },
+      orderBy: { scheduledStart: 'asc' },
+    });
+
+    const modules = offering.modules.map((courseModule) => ({
+      id: courseModule.id,
+      title: courseModule.title,
+      order: courseModule.order,
+      lessons: courseModule.lessons.map((lesson) => ({
+        id: lesson.id,
+        title: lesson.title,
+        contentType: lesson.contentType,
+        order: lesson.order,
+        durationMinutes: lesson.durationMinutes,
+        media: lesson.media,
+        completed: lesson.progress[0]?.completed ?? false,
+      })),
+    }));
+
+    const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
+    const completedLessons = modules.reduce(
+      (sum, m) => sum + m.lessons.filter((l) => l.completed).length,
+      0,
+    );
+
+    return {
+      id: offering.id,
+      course: offering.course,
+      academicSession: offering.academicSession,
+      scoringSchema: offering.scoringSchema,
+      instructors: offering.instructors.map((i) => ({
+        userId: i.userId,
+        name: i.user.name,
+        image: i.user.image,
+        isPrimary: i.isPrimary,
+        title: i.user.teacherProfile?.title ?? null,
+        department: i.user.teacherProfile?.department?.name ?? null,
+      })),
+      modules,
+      totalLessons,
+      completedLessons,
+      enrollmentStatus: enrollment?.status ?? null,
+      nextLiveClass,
+    };
+  }
+
   private async getCourseOfferingOrThrow(courseOfferingId: string) {
     const offering = await this.prisma.courseOffering.findUnique({
       where: { id: courseOfferingId },
@@ -90,11 +172,17 @@ export class AcademicsService {
     });
   }
 
-  listAssessments(courseOfferingId: string) {
-    return this.prisma.assessment.findMany({
+  async listAssessments(courseOfferingId: string, callerId: string) {
+    const assessments = await this.prisma.assessment.findMany({
       where: { courseOfferingId },
       orderBy: { dueAt: 'asc' },
+      include: { grades: { where: { studentId: callerId } } },
     });
+
+    return assessments.map(({ grades, ...assessment }) => ({
+      ...assessment,
+      myGrade: grades[0]?.score ?? null,
+    }));
   }
 
   async createLiveClass(

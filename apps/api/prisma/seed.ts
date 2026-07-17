@@ -433,6 +433,7 @@ async function main() {
           type: 'CLASS',
           startAt: e.start,
           endAt: e.end,
+          publishState: 'PUBLISHED',
         },
       });
     }
