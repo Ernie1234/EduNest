@@ -15,6 +15,9 @@ enum UserRole {
   ADMIN
   SUPER_ADMIN
   PARENT
+  PRINCIPAL
+  VICE_PRINCIPAL
+  NON_ACADEMIC_STAFF
 }
 
 enum UserStatus {
@@ -60,7 +63,19 @@ enum CalendarEventType {
   ASSIGNMENT_DEADLINE
   MEETING
   HOLIDAY
+  TERM
+  EXAM_WINDOW
   OTHER
+}
+
+enum PublishStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum Visibility {
+  PUBLIC
+  INTERNAL
 }
 
 enum AssessmentType {
@@ -163,13 +178,16 @@ enum MediaKind {
 // ===================== IDENTITY & SCHOOLS =====================
 
 model School {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  logoUrl   String?
-  address   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  slug         String   @unique
+  logoUrl      String?
+  address      String?
+  timezone     String   @default("Africa/Lagos")
+  contactEmail String?
+  contactPhone String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   users            User[]
   departments      Department[]
@@ -179,6 +197,8 @@ model School {
   admissionCycles  AdmissionCycle[]
   calendarEvents   CalendarEvent[]
   announcements    Announcement[]
+  scoringSchemas   ScoringSchema[]
+  newsPosts        NewsPost[]
 }
 
 model User {
@@ -221,6 +241,8 @@ model User {
   complaintComments  ComplaintComment[]
   aiJobsRequested    AiJob[]
   mediaUploaded      Media[]
+  calendarEventsCreated CalendarEvent[]
+  newsPosts          NewsPost[]
 
   @@index([schoolId])
 }
@@ -315,12 +337,14 @@ model Course {
 }
 
 model CourseOffering {
-  id                String @id @default(cuid())
+  id                String  @id @default(cuid())
   courseId          String
   academicSessionId String
+  scoringSchemaId   String?
 
   course          Course          @relation(fields: [courseId], references: [id])
   academicSession AcademicSession @relation(fields: [academicSessionId], references: [id])
+  scoringSchema   ScoringSchema?  @relation(fields: [scoringSchemaId], references: [id])
 
   instructors    CourseInstructor[]
   enrollments    Enrollment[]
@@ -435,13 +459,17 @@ model CalendarEvent {
   id               String            @id @default(cuid())
   schoolId         String
   courseOfferingId String?
+  createdById      String?
   title            String
   type             CalendarEventType
   startAt          DateTime
   endAt            DateTime
+  audience         UserRole[]
+  publishState     PublishStatus     @default(DRAFT)
 
   school         School          @relation(fields: [schoolId], references: [id])
   courseOffering CourseOffering? @relation(fields: [courseOfferingId], references: [id])
+  createdBy      User?           @relation(fields: [createdById], references: [id])
 
   @@index([schoolId, startAt])
 }
@@ -505,6 +533,30 @@ model AttendanceRecord {
   student   User       @relation(fields: [studentId], references: [id])
 
   @@index([studentId, date])
+}
+
+model ScoringSchema {
+  id        String   @id @default(cuid())
+  schoolId  String
+  name      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school          School                   @relation(fields: [schoolId], references: [id])
+  components      ScoringSchemaComponent[]
+  courseOfferings CourseOffering[]
+
+  @@unique([schoolId, name])
+}
+
+model ScoringSchemaComponent {
+  id              String @id @default(cuid())
+  scoringSchemaId String
+  name            String
+  weightPercent   Float
+
+  scoringSchema ScoringSchema @relation(fields: [scoringSchemaId], references: [id], onDelete: Cascade)
 }
 
 // ===================== ADMISSIONS =====================
@@ -651,15 +703,35 @@ model ChatMessage {
 }
 
 model Announcement {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   schoolId    String
   authorId    String
   title       String
   body        String
-  publishedAt DateTime @default(now())
+  audience    UserRole[]
+  visibility  Visibility @default(INTERNAL)
+  publishedAt DateTime   @default(now())
 
   school School @relation(fields: [schoolId], references: [id])
   author User   @relation(fields: [authorId], references: [id])
+}
+
+model NewsPost {
+  id          String        @id @default(cuid())
+  schoolId    String
+  authorId    String
+  mediaId     String?
+  title       String
+  body        String
+  status      PublishStatus @default(DRAFT)
+  visibility  Visibility    @default(PUBLIC)
+  publishedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  school School @relation(fields: [schoolId], references: [id])
+  author User   @relation(fields: [authorId], references: [id])
+  media  Media? @relation(fields: [mediaId], references: [id])
 }
 
 // ===================== COMPLAINTS =====================
@@ -731,4 +803,5 @@ model Media {
   jobApplicationResumes JobApplication[]
   chatMessages          ChatMessage[]
   aiJobResults          AiJob[]
+  newsPosts             NewsPost[]
 }
