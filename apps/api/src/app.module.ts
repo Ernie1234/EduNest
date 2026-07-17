@@ -18,6 +18,8 @@ import { SemestersModule } from './semesters/semesters.module';
 import { ScoringModule } from './scoring/scoring.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { NewsModule } from './news/news.module';
+import { StreakModule } from './streak/streak.module';
+import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { NewsModule } from './news/news.module';
     ScoringModule,
     AnnouncementsModule,
     NewsModule,
+    StreakModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
 })

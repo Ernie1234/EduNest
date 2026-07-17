@@ -11,6 +11,9 @@ import { AcademicsService } from './academics.service';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { CreateLiveClassDto } from './dto/create-live-class.dto';
 import { SelectScoringSchemaDto } from './dto/select-scoring-schema.dto';
+import { CreateCourseModuleDto } from './dto/create-course-module.dto';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { EngageLessonDto } from './dto/engage-lesson.dto';
 
 const INSTRUCTOR_OR_ADMIN_ROLES = [UserRole.TEACHER, ...ADMIN_TIER_ROLES];
 
@@ -35,6 +38,33 @@ export class AcademicsController {
     return this.academicsService.listEnrollmentsForStudent(user.sub);
   }
 
+  @Get('dashboard-summary')
+  @ApiOperation({
+    summary: 'Aggregate dashboard stats for the current student: total courses, pending ' +
+      'assignments, attendance rate, and lessons completed this week',
+  })
+  @ApiResponse({ status: 200, description: 'Dashboard stats returned' })
+  getDashboardSummary(@CurrentUser() user: AccessTokenPayload) {
+    return this.academicsService.getDashboardSummary(user.sub);
+  }
+
+  @Get('live-classes')
+  @ApiOperation({ summary: "List live classes across the caller's enrolled or hosted course offerings" })
+  @ApiResponse({ status: 200, description: 'Live classes returned' })
+  listLiveClasses(@CurrentUser() user: AccessTokenPayload) {
+    return this.academicsService.listLiveClasses(user.sub);
+  }
+
+  @Get('live-classes/:id')
+  @ApiOperation({
+    summary: 'Get live class detail: course, host, chat room id, participants, and AI jobs (summary/transcription)',
+  })
+  @ApiResponse({ status: 200, description: 'Live class detail returned' })
+  @ApiResponse({ status: 404, description: 'Live class not found' })
+  getLiveClassDetail(@Param('id') id: string) {
+    return this.academicsService.getLiveClassDetail(id);
+  }
+
   @Post('course-offerings/:id/assessments')
   @UseGuards(RolesGuard)
   @Roles(...INSTRUCTOR_OR_ADMIN_ROLES)
@@ -54,10 +84,24 @@ export class AcademicsController {
   }
 
   @Get('course-offerings/:id/assessments')
-  @ApiOperation({ summary: 'List assessments for a course offering' })
+  @ApiOperation({
+    summary:
+      "List assessments for a course offering, including the caller's own grade per assessment (null if ungraded)",
+  })
   @ApiResponse({ status: 200, description: 'Assessments returned' })
-  listAssessments(@Param('id') id: string) {
-    return this.academicsService.listAssessments(id);
+  listAssessments(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.academicsService.listAssessments(id, user.sub);
+  }
+
+  @Get('course-offerings/:id')
+  @ApiOperation({
+    summary:
+      "Get full course offering detail: course, department, session, instructors, modules/lessons with the caller's own lesson progress, and enrollment status",
+  })
+  @ApiResponse({ status: 200, description: 'Course offering detail returned' })
+  @ApiResponse({ status: 404, description: 'Course offering not found' })
+  getCourseOfferingDetail(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.academicsService.getCourseOfferingDetail(id, user.sub);
   }
 
   @Post('course-offerings/:id/live-classes')
@@ -76,6 +120,55 @@ export class AcademicsController {
     @Body() dto: CreateLiveClassDto,
   ) {
     return this.academicsService.createLiveClass(user.sub, user.role as UserRole, id, dto);
+  }
+
+  @Post('course-offerings/:id/modules')
+  @UseGuards(RolesGuard)
+  @Roles(...INSTRUCTOR_OR_ADMIN_ROLES)
+  @ApiOperation({ summary: 'Create a module within a course offering' })
+  @ApiResponse({ status: 201, description: 'Module created' })
+  @ApiResponse({ status: 403, description: 'Not an assigned instructor or admin' })
+  createCourseModule(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: CreateCourseModuleDto,
+  ) {
+    return this.academicsService.createCourseModule(user.sub, user.role as UserRole, id, dto);
+  }
+
+  @Post('modules/:moduleId/lessons')
+  @UseGuards(RolesGuard)
+  @Roles(...INSTRUCTOR_OR_ADMIN_ROLES)
+  @ApiOperation({
+    summary:
+      'Add a lesson to a module: prerecorded video, document, external link, or scheduled ' +
+      'ahead via publishAt. Reference an already-registered Media record via mediaId.',
+  })
+  @ApiResponse({ status: 201, description: 'Lesson created' })
+  @ApiResponse({ status: 403, description: 'Not an assigned instructor or admin' })
+  @ApiResponse({ status: 404, description: 'Course module not found' })
+  createLesson(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('moduleId') moduleId: string,
+    @Body() dto: CreateLessonDto,
+  ) {
+    return this.academicsService.createLesson(user.sub, user.role as UserRole, moduleId, dto);
+  }
+
+  @Post('lessons/:id/engage')
+  @ApiOperation({
+    summary:
+      "Report the current student's engagement with a lesson (time spent / completion). " +
+      'Rolls into the daily StudyActivity record the streak is computed from.',
+  })
+  @ApiResponse({ status: 201, description: 'Engagement recorded' })
+  @ApiResponse({ status: 404, description: 'Lesson not found' })
+  engageLesson(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: EngageLessonDto,
+  ) {
+    return this.academicsService.engageLesson(user.sub, id, dto);
   }
 
   @Patch('course-offerings/:id/scoring-schema')

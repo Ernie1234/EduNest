@@ -42,15 +42,6 @@ export interface Course {
   lecturer: string
 }
 
-export interface ChatMessage {
-  id: string
-  sender: string
-  avatar?: string
-  content: string
-  timestamp: string
-  isSelf: boolean
-}
-
 // ===================== LIVE CLASSES =====================
 
 export type LiveClassStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED"
@@ -103,6 +94,8 @@ export type CalendarEventType =
   | "ASSIGNMENT_DEADLINE"
   | "MEETING"
   | "HOLIDAY"
+  | "TERM"
+  | "EXAM_WINDOW"
   | "OTHER"
 
 export interface CalendarEventSummary {
@@ -111,6 +104,7 @@ export interface CalendarEventSummary {
   type: CalendarEventType
   startAt: string
   endAt: string
+  courseOfferingId?: string | null
 }
 
 // ===================== ADMISSIONS =====================
@@ -184,4 +178,202 @@ export interface AnnouncementSummary {
   title: string
   body: string
   publishedAt: string
+}
+
+// ===================== COURSE OFFERING DETAIL =====================
+
+export type LessonContentType = "VIDEO" | "DOCUMENT" | "LINK" | "TEXT"
+
+export interface MediaSummary {
+  id: string
+  kind: "IMAGE" | "VIDEO" | "AUDIO" | "DOCUMENT"
+  url: string
+  mimeType: string
+  durationSeconds?: number | null
+}
+
+export interface LessonDetail {
+  id: string
+  title: string
+  contentType: LessonContentType
+  order: number
+  durationMinutes: number | null
+  media: MediaSummary | null
+  completed: boolean
+}
+
+export interface CourseModuleDetail {
+  id: string
+  title: string
+  order: number
+  lessons: LessonDetail[]
+}
+
+export interface CourseInstructorSummary {
+  userId: string
+  name: string | null
+  image: string | null
+  isPrimary: boolean
+  title: string | null
+  department: string | null
+}
+
+export interface ScoringSchemaComponentSummary {
+  id: string
+  name: string
+  weightPercent: number
+}
+
+export interface ScoringSchemaSummary {
+  id: string
+  name: string
+  isActive: boolean
+  components: ScoringSchemaComponentSummary[]
+}
+
+export interface CourseOfferingDetail {
+  id: string
+  course: {
+    id: string
+    code: string
+    title: string
+    description: string | null
+    creditUnits: number
+    level: number | null
+    department: { id: string; name: string; code: string }
+  }
+  academicSession: {
+    id: string
+    name: string
+    semester: "FIRST" | "SECOND"
+    startDate: string
+    endDate: string
+  }
+  scoringSchema: ScoringSchemaSummary | null
+  instructors: CourseInstructorSummary[]
+  modules: CourseModuleDetail[]
+  totalLessons: number
+  completedLessons: number
+  enrollmentStatus: "ACTIVE" | "DROPPED" | "COMPLETED" | null
+  nextLiveClass: LiveClassSummary | null
+}
+
+// ===================== ASSESSMENTS WITH GRADE =====================
+
+export type AssessmentType = "CAT" | "ASSIGNMENT" | "EXAM" | "QUIZ" | "PROJECT"
+
+export interface AssessmentWithGrade {
+  id: string
+  courseOfferingId: string
+  title: string
+  type: AssessmentType
+  maxScore: number
+  weightPercent: number
+  dueAt: string | null
+  myGrade: number | null
+}
+
+// ===================== MY COURSES (ENROLLMENT SUMMARY) =====================
+
+export interface EnrolledCourseSummary {
+  courseOfferingId: string
+  status: "ACTIVE" | "DROPPED" | "COMPLETED"
+  course: {
+    id: string
+    code: string
+    title: string
+    department: { id: string; name: string; code: string }
+  }
+  totalLessons: number
+  completedLessons: number
+  instructorName: string | null
+}
+
+// ===================== LIVE CLASS DETAIL =====================
+
+export interface LiveClassListItem {
+  id: string
+  title: string
+  status: LiveClassStatus
+  scheduledStart: string
+  scheduledEnd: string
+  courseOfferingId: string
+  courseCode: string
+  courseTitle: string
+  hostName: string | null
+}
+
+export interface LiveClassDetail {
+  id: string
+  title: string
+  status: LiveClassStatus
+  scheduledStart: string
+  scheduledEnd: string
+  courseOfferingId: string
+  course: {
+    id: string
+    code: string
+    title: string
+    description: string | null
+    department: { id: string; name: string; code: string }
+  }
+  host: {
+    id: string
+    name: string | null
+    image: string | null
+    department: string | null
+  }
+  chatRoomId: string | null
+  participants: LiveClassParticipantSummary[]
+  aiJobs: AiJobSummary[]
+}
+
+// ===================== MESSAGING / CHAT =====================
+
+/** Wire shape for both the REST message history endpoint and the
+ * `message:new` WebSocket event. `isSelf` is intentionally not included here
+ * since a single broadcast payload can't be "self" for every recipient —
+ * compute it client-side by comparing senderId to the current session user. */
+export interface ChatRoomMessage {
+  id: string
+  chatRoomId: string
+  senderId: string
+  senderName: string | null
+  senderImage: string | null
+  content: string | null
+  createdAt: string
+}
+
+export interface SendMessageInput {
+  content: string
+}
+
+// ===================== LESSON ENGAGEMENT =====================
+
+export interface EngageLessonInput {
+  secondsSpent: number
+  completed?: boolean
+}
+
+// ===================== STREAK =====================
+
+export interface StreakDayStatus {
+  date: string
+  active: boolean
+}
+
+export interface StreakMilestone {
+  days: number
+  label: string
+  achieved: boolean
+  daysToGo: number
+}
+
+export interface StreakSummary {
+  currentStreak: number
+  longestStreak: number
+  totalStudyDays: number
+  freezesLeftThisMonth: number
+  thisWeek: StreakDayStatus[]
+  milestones: StreakMilestone[]
 }
