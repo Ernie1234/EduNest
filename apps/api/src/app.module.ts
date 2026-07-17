@@ -13,6 +13,11 @@ import { AiModule } from './ai/ai.module';
 import { MediaModule } from './media/media.module';
 import { ComplaintsModule } from './complaints/complaints.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { SchoolModule } from './school/school.module';
+import { SemestersModule } from './semesters/semesters.module';
+import { ScoringModule } from './scoring/scoring.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { NewsModule } from './news/news.module';
 
 @Module({
   imports: [
@@ -32,6 +37,11 @@ import { CalendarModule } from './calendar/calendar.module';
     MediaModule,
     ComplaintsModule,
     CalendarModule,
+    SchoolModule,
+    SemestersModule,
+    ScoringModule,
+    AnnouncementsModule,
+    NewsModule,
   ],
   controllers: [AppController],
 })
