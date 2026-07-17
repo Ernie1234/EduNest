@@ -20,10 +20,36 @@ export class AcademicsService {
     });
   }
 
-  listEnrollmentsForStudent(studentId: string) {
-    return this.prisma.enrollment.findMany({
+  async listEnrollmentsForStudent(studentId: string) {
+    const enrollments = await this.prisma.enrollment.findMany({
       where: { studentId },
-      include: { courseOffering: { include: { course: true } } },
+      include: {
+        courseOffering: {
+          include: {
+            course: { include: { department: true } },
+            instructors: { include: { user: true } },
+            modules: {
+              include: { lessons: { include: { progress: { where: { studentId } } } } },
+            },
+          },
+        },
+      },
+    });
+
+    return enrollments.map((enrollment) => {
+      const lessons = enrollment.courseOffering.modules.flatMap((m) => m.lessons);
+      const primaryInstructor =
+        enrollment.courseOffering.instructors.find((i) => i.isPrimary) ??
+        enrollment.courseOffering.instructors[0];
+
+      return {
+        courseOfferingId: enrollment.courseOffering.id,
+        status: enrollment.status,
+        course: enrollment.courseOffering.course,
+        totalLessons: lessons.length,
+        completedLessons: lessons.filter((l) => l.progress[0]?.completed).length,
+        instructorName: primaryInstructor?.user.name ?? null,
+      };
     });
   }
 

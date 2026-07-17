@@ -281,3 +281,19 @@ export interface AssessmentWithGrade {
   dueAt: string | null
   myGrade: number | null
 }
+
+// ===================== MY COURSES (ENROLLMENT SUMMARY) =====================
+
+export interface EnrolledCourseSummary {
+  courseOfferingId: string
+  status: "ACTIVE" | "DROPPED" | "COMPLETED"
+  course: {
+    id: string
+    code: string
+    title: string
+    department: { id: string; name: string; code: string }
+  }
+  totalLessons: number
+  completedLessons: number
+  instructorName: string | null
+}

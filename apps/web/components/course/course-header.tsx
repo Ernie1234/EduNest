@@ -2,28 +2,19 @@ import { CourseOfferingDetail } from "@workspace/types"
 import { Badge } from "@workspace/ui/components/badge"
 import { Button } from "@workspace/ui/components/button"
 import { Progress } from "@workspace/ui/components/progress"
+import { getCourseStatus } from "@/lib/course-status"
 
 interface CourseHeaderProps {
   detail: CourseOfferingDetail
   onContinueLearning: () => void
 }
 
-function getCourseStatus(detail: CourseOfferingDetail): {
-  label: string
-  variant: "success" | "warning" | "secondary"
-} {
-  const isComplete =
-    detail.enrollmentStatus === "COMPLETED" ||
-    (detail.totalLessons > 0 && detail.completedLessons === detail.totalLessons)
-  if (isComplete) return { label: "Completed", variant: "secondary" }
-
-  const progress = detail.totalLessons > 0 ? detail.completedLessons / detail.totalLessons : 0
-  if (progress >= 0.85) return { label: "Almost done", variant: "warning" }
-  return { label: "Active", variant: "success" }
-}
-
 export function CourseHeader({ detail, onContinueLearning }: CourseHeaderProps) {
-  const status = getCourseStatus(detail)
+  const status = getCourseStatus(
+    detail.enrollmentStatus,
+    detail.totalLessons,
+    detail.completedLessons
+  )
   const progressPercent =
     detail.totalLessons > 0
       ? Math.round((detail.completedLessons / detail.totalLessons) * 100)
