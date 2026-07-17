@@ -31,7 +31,7 @@ export function NextLiveClassCard({ liveClass }: NextLiveClassCardProps) {
             </p>
             {liveClass.status === "LIVE" && (
               <Button asChild>
-                <Link href="/live-classes">
+                <Link href={`/live-classes/${liveClass.id}`}>
                   <Radio />
                   Join live class
                 </Link>

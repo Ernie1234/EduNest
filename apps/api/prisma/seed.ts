@@ -2,9 +2,21 @@ import { PrismaClient, type Department, type User, type CourseOffering } from '@
 
 const prisma = new PrismaClient();
 
-/** Deterministic demo dates so the seed reads the same every run. */
+/** Deterministic demo dates so the seed reads the same every run. Calendar/timetable
+ * events stay anchored here — that's a fixed demo semester, not "this week". */
 const DEC = (day: number, hour: number, minute = 0) =>
   new Date(Date.UTC(2025, 11, day, hour, minute));
+
+/** Relative-to-today dates (UTC day-truncated) so dashboard/streak stats that are
+ * genuinely "this week" / "consecutive days" look real whenever the seed is run. */
+const TODAY = new Date();
+function daysAgo(n: number, hour = 9, minute = 0): Date {
+  const d = new Date(
+    Date.UTC(TODAY.getUTCFullYear(), TODAY.getUTCMonth(), TODAY.getUTCDate() - n),
+  );
+  d.setUTCHours(hour, minute, 0, 0);
+  return d;
+}
 
 function must<T>(value: T | undefined, what: string): T {
   if (value === undefined) throw new Error(`Seed data missing: ${what}`);
@@ -44,6 +56,7 @@ async function seedLessons(
 ) {
   const perModule = Math.ceil(opts.totalLessons / opts.moduleCount);
   let created = 0;
+  let completedIndex = 0;
   let remainingCompleted = opts.completedLessons;
 
   for (let m = 0; m < opts.moduleCount && created < opts.totalLessons; m++) {
@@ -67,14 +80,20 @@ async function seedLessons(
       });
 
       if (remainingCompleted > 0) {
+        // Spread completions across the last ~10 days (not all on one day) so
+        // "completed this week" and the streak have a believable recent history.
+        const completedAt = daysAgo(completedIndex % 10, 8 + (completedIndex % 4));
         await prisma.lessonProgress.create({
           data: {
             lessonId: lesson.id,
             studentId: student.id,
             completed: true,
-            completedAt: DEC(1, 9),
+            completedAt,
+            timeSpentSeconds: (lesson.durationMinutes ?? 25) * 60,
+            lastAccessedAt: completedAt,
           },
         });
+        completedIndex++;
         remainingCompleted--;
       }
     }
@@ -524,7 +543,7 @@ async function main() {
   // ===================== ATTENDANCE (92% rate) =====================
 
   for (let i = 0; i < 25; i++) {
-    const date = DEC(1 - i, 10);
+    const date = daysAgo(i, 10);
     const id = `seed-attendance-${i}`;
     await prisma.attendanceRecord.upsert({
       where: { id },
@@ -537,6 +556,33 @@ async function main() {
       },
     });
   }
+
+  // ===================== STUDY ACTIVITY & STREAK =====================
+  // A 14-day continuous streak (0-4 days ago, a frozen gap at day 5, then
+  // 6-13 days ago) — total study days is the 13 genuinely active days, but
+  // the freeze bridges the gap so current/longest streak both read 14,
+  // demonstrating the freeze mechanic alongside the streak itself.
+
+  const activeDaysAgo = [0, 1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 12, 13];
+  for (const n of activeDaysAgo) {
+    const activityDate = daysAgo(n, 0, 0);
+    await prisma.studyActivity.upsert({
+      where: { studentId_activityDate: { studentId: nancy.id, activityDate } },
+      update: {},
+      create: {
+        studentId: nancy.id,
+        activityDate,
+        minutesSpent: 25,
+        lessonsEngaged: 2,
+        meetsThreshold: true,
+      },
+    });
+  }
+  await prisma.streakFreezeUse.upsert({
+    where: { studentId_forDate: { studentId: nancy.id, forDate: daysAgo(5, 0, 0) } },
+    update: {},
+    create: { studentId: nancy.id, forDate: daysAgo(5, 0, 0) },
+  });
 
   // ===================== ANNOUNCEMENTS =====================
 

@@ -2,9 +2,19 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ADMIN_TIER_ROLES } from '../common/constants/roles.constants';
+import { STREAK_DAILY_MINUTES_THRESHOLD } from '../streak/streak.constants';
 import { CreateAssessmentDto } from './dto/create-assessment.dto';
 import { CreateLiveClassDto } from './dto/create-live-class.dto';
 import { SelectScoringSchemaDto } from './dto/select-scoring-schema.dto';
+import { CreateCourseModuleDto } from './dto/create-course-module.dto';
+import { CreateLessonDto } from './dto/create-lesson.dto';
+import { EngageLessonDto } from './dto/engage-lesson.dto';
+
+/** UTC-based truncation so this always agrees with dateKey()-style
+ * `toISOString().slice(0, 10)` comparisons regardless of server timezone. */
+function startOfDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+}
 
 @Injectable()
 export class AcademicsService {
@@ -255,5 +265,194 @@ export class AcademicsService {
       where: { id: courseOfferingId },
       data: { scoringSchemaId: dto.scoringSchemaId },
     });
+  }
+
+  async createCourseModule(
+    callerId: string,
+    callerRole: UserRole,
+    courseOfferingId: string,
+    dto: CreateCourseModuleDto,
+  ) {
+    await this.getCourseOfferingOrThrow(courseOfferingId);
+    await this.assertInstructorOrAdmin(callerId, callerRole, courseOfferingId);
+
+    return this.prisma.courseModule.create({
+      data: { courseOfferingId, title: dto.title, order: dto.order },
+    });
+  }
+
+  async createLesson(
+    callerId: string,
+    callerRole: UserRole,
+    courseModuleId: string,
+    dto: CreateLessonDto,
+  ) {
+    const courseModule = await this.prisma.courseModule.findUnique({
+      where: { id: courseModuleId },
+    });
+    if (!courseModule) {
+      throw new NotFoundException('Course module not found');
+    }
+    await this.assertInstructorOrAdmin(callerId, callerRole, courseModule.courseOfferingId);
+
+    return this.prisma.lesson.create({
+      data: {
+        courseModuleId,
+        title: dto.title,
+        contentType: dto.contentType,
+        order: dto.order,
+        mediaId: dto.mediaId,
+        externalUrl: dto.externalUrl,
+        publishAt: dto.publishAt ? new Date(dto.publishAt) : undefined,
+        durationMinutes: dto.durationMinutes,
+      },
+    });
+  }
+
+  /** Records a student's engagement with a lesson (time spent / completion) and
+   * rolls it into today's StudyActivity, which is what the streak is computed from. */
+  async engageLesson(studentId: string, lessonId: string, dto: EngageLessonDto) {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!lesson) {
+      throw new NotFoundException('Lesson not found');
+    }
+
+    const now = new Date();
+    const completedNow = dto.completed === true;
+
+    const progress = await this.prisma.lessonProgress.upsert({
+      where: { lessonId_studentId: { lessonId, studentId } },
+      create: {
+        lessonId,
+        studentId,
+        timeSpentSeconds: dto.secondsSpent,
+        lastAccessedAt: now,
+        completed: completedNow,
+        completedAt: completedNow ? now : null,
+      },
+      update: {
+        timeSpentSeconds: { increment: dto.secondsSpent },
+        lastAccessedAt: now,
+        ...(completedNow ? { completed: true, completedAt: now } : {}),
+      },
+    });
+
+    const activityDate = startOfDay(now);
+    const existing = await this.prisma.studyActivity.findUnique({
+      where: { studentId_activityDate: { studentId, activityDate } },
+    });
+    const minutesSpent = (existing?.minutesSpent ?? 0) + Math.round(dto.secondsSpent / 60);
+    const lessonsEngaged = (existing?.lessonsEngaged ?? 0) + 1;
+    const meetsThreshold =
+      (existing?.meetsThreshold ?? false) ||
+      minutesSpent >= STREAK_DAILY_MINUTES_THRESHOLD ||
+      completedNow;
+
+    await this.prisma.studyActivity.upsert({
+      where: { studentId_activityDate: { studentId, activityDate } },
+      create: { studentId, activityDate, minutesSpent, lessonsEngaged, meetsThreshold },
+      update: { minutesSpent, lessonsEngaged, meetsThreshold },
+    });
+
+    return progress;
+  }
+
+  async getDashboardSummary(studentId: string) {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const [totalCourses, attendanceRecords, completedThisWeek, assessments] = await Promise.all([
+      this.prisma.enrollment.count({ where: { studentId } }),
+      this.prisma.attendanceRecord.findMany({ where: { studentId }, select: { status: true } }),
+      this.prisma.lessonProgress.count({
+        where: { studentId, completedAt: { gte: weekAgo } },
+      }),
+      this.prisma.assessment.findMany({
+        where: { courseOffering: { enrollments: { some: { studentId } } } },
+        include: { grades: { where: { studentId } } },
+      }),
+    ]);
+
+    const attendanceRatePercent =
+      attendanceRecords.length > 0
+        ? Math.round(
+            (attendanceRecords.filter((r) => r.status === 'PRESENT').length /
+              attendanceRecords.length) *
+              100,
+          )
+        : 0;
+    const pendingAssignments = assessments.filter((a) => a.grades.length === 0).length;
+
+    return { totalCourses, pendingAssignments, attendanceRatePercent, completedThisWeek };
+  }
+
+  async listLiveClasses(callerId: string) {
+    const liveClasses = await this.prisma.liveClass.findMany({
+      where: {
+        OR: [
+          { courseOffering: { enrollments: { some: { studentId: callerId } } } },
+          { courseOffering: { instructors: { some: { userId: callerId } } } },
+          { hostId: callerId },
+        ],
+      },
+      orderBy: { scheduledStart: 'desc' },
+      include: { courseOffering: { include: { course: true } }, host: true },
+    });
+
+    return liveClasses.map((lc) => ({
+      id: lc.id,
+      title: lc.title,
+      status: lc.status,
+      scheduledStart: lc.scheduledStart,
+      scheduledEnd: lc.scheduledEnd,
+      courseOfferingId: lc.courseOfferingId,
+      courseCode: lc.courseOffering.course.code,
+      courseTitle: lc.courseOffering.course.title,
+      hostName: lc.host.name,
+    }));
+  }
+
+  async getLiveClassDetail(liveClassId: string) {
+    const liveClass = await this.prisma.liveClass.findUnique({
+      where: { id: liveClassId },
+      include: {
+        courseOffering: { include: { course: { include: { department: true } } } },
+        host: { include: { teacherProfile: { include: { department: true } } } },
+        chatRoom: true,
+        participants: { include: { user: true } },
+        aiJobs: true,
+      },
+    });
+    if (!liveClass) {
+      throw new NotFoundException('Live class not found');
+    }
+
+    return {
+      id: liveClass.id,
+      title: liveClass.title,
+      status: liveClass.status,
+      scheduledStart: liveClass.scheduledStart,
+      scheduledEnd: liveClass.scheduledEnd,
+      courseOfferingId: liveClass.courseOfferingId,
+      course: liveClass.courseOffering.course,
+      host: {
+        id: liveClass.host.id,
+        name: liveClass.host.name,
+        image: liveClass.host.image,
+        department: liveClass.host.teacherProfile?.department?.name ?? null,
+      },
+      chatRoomId: liveClass.chatRoom?.id ?? null,
+      participants: liveClass.participants.map((p) => ({
+        userId: p.userId,
+        name: p.user.name ?? '',
+        image: p.user.image ?? undefined,
+      })),
+      aiJobs: liveClass.aiJobs.map((j) => ({
+        id: j.id,
+        type: j.type,
+        status: j.status,
+        resultText: j.resultText ?? undefined,
+      })),
+    };
   }
 }

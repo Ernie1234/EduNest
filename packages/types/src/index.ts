@@ -42,15 +42,6 @@ export interface Course {
   lecturer: string
 }
 
-export interface ChatMessage {
-  id: string
-  sender: string
-  avatar?: string
-  content: string
-  timestamp: string
-  isSelf: boolean
-}
-
 // ===================== LIVE CLASSES =====================
 
 export type LiveClassStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED"
@@ -296,4 +287,93 @@ export interface EnrolledCourseSummary {
   totalLessons: number
   completedLessons: number
   instructorName: string | null
+}
+
+// ===================== LIVE CLASS DETAIL =====================
+
+export interface LiveClassListItem {
+  id: string
+  title: string
+  status: LiveClassStatus
+  scheduledStart: string
+  scheduledEnd: string
+  courseOfferingId: string
+  courseCode: string
+  courseTitle: string
+  hostName: string | null
+}
+
+export interface LiveClassDetail {
+  id: string
+  title: string
+  status: LiveClassStatus
+  scheduledStart: string
+  scheduledEnd: string
+  courseOfferingId: string
+  course: {
+    id: string
+    code: string
+    title: string
+    description: string | null
+    department: { id: string; name: string; code: string }
+  }
+  host: {
+    id: string
+    name: string | null
+    image: string | null
+    department: string | null
+  }
+  chatRoomId: string | null
+  participants: LiveClassParticipantSummary[]
+  aiJobs: AiJobSummary[]
+}
+
+// ===================== MESSAGING / CHAT =====================
+
+/** Wire shape for both the REST message history endpoint and the
+ * `message:new` WebSocket event. `isSelf` is intentionally not included here
+ * since a single broadcast payload can't be "self" for every recipient —
+ * compute it client-side by comparing senderId to the current session user. */
+export interface ChatRoomMessage {
+  id: string
+  chatRoomId: string
+  senderId: string
+  senderName: string | null
+  senderImage: string | null
+  content: string | null
+  createdAt: string
+}
+
+export interface SendMessageInput {
+  content: string
+}
+
+// ===================== LESSON ENGAGEMENT =====================
+
+export interface EngageLessonInput {
+  secondsSpent: number
+  completed?: boolean
+}
+
+// ===================== STREAK =====================
+
+export interface StreakDayStatus {
+  date: string
+  active: boolean
+}
+
+export interface StreakMilestone {
+  days: number
+  label: string
+  achieved: boolean
+  daysToGo: number
+}
+
+export interface StreakSummary {
+  currentStreak: number
+  longestStreak: number
+  totalStudyDays: number
+  freezesLeftThisMonth: number
+  thisWeek: StreakDayStatus[]
+  milestones: StreakMilestone[]
 }

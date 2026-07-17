@@ -243,6 +243,8 @@ model User {
   mediaUploaded      Media[]
   calendarEventsCreated CalendarEvent[]
   newsPosts          NewsPost[]
+  studyActivities    StudyActivity[]
+  streakFreezeUses   StreakFreezeUse[]
 
   @@index([schoolId])
 }
@@ -398,6 +400,8 @@ model Lesson {
   title           String
   contentType     LessonContentType
   mediaId         String?
+  externalUrl     String?
+  publishAt       DateTime?
   order           Int
   durationMinutes Int?
 
@@ -407,16 +411,44 @@ model Lesson {
 }
 
 model LessonProgress {
-  id          String    @id @default(cuid())
-  lessonId    String
-  studentId   String
-  completed   Boolean   @default(false)
-  completedAt DateTime?
+  id               String    @id @default(cuid())
+  lessonId         String
+  studentId        String
+  completed        Boolean   @default(false)
+  completedAt      DateTime?
+  timeSpentSeconds Int       @default(0)
+  lastAccessedAt   DateTime?
 
   lesson  Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   student User   @relation(fields: [studentId], references: [id])
 
   @@unique([lessonId, studentId])
+}
+
+model StudyActivity {
+  id             String   @id @default(cuid())
+  studentId      String
+  activityDate   DateTime
+  minutesSpent   Int      @default(0)
+  lessonsEngaged Int      @default(0)
+  meetsThreshold Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, activityDate])
+}
+
+model StreakFreezeUse {
+  id        String   @id @default(cuid())
+  studentId String
+  forDate   DateTime
+  createdAt DateTime @default(now())
+
+  student User @relation(fields: [studentId], references: [id])
+
+  @@unique([studentId, forDate])
 }
 
 // ===================== LIVE CLASSES & CALENDAR =====================

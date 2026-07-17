@@ -1,56 +1,70 @@
+"use client"
+
 import Header from "@/components/header"
 import { Nav } from "@/components/navbar"
-import { Album, ArrowUpRight, Presentation } from "lucide-react"
+import { useAuth } from "@/hooks/use-auth"
+import { useDashboardSummary } from "@/hooks/use-dashboard-summary"
+import { useMyCourses } from "@/hooks/use-my-courses"
+import { useTimetable } from "@/hooks/use-timetable"
+import { useAllAssessments } from "@/hooks/use-all-assessments"
+import { StatCard } from "@/components/dashboard/stat-card"
+import { TodaysScheduleCard } from "@/components/dashboard/todays-schedule-card"
+import { PerformanceOverviewCard } from "@/components/dashboard/performance-overview-card"
+import { AssignmentsPanel } from "@/components/dashboard/assignments-panel"
+import { ContinueLearningList } from "@/components/dashboard/continue-learning-list"
+import { AiChatPlaceholder } from "@/components/dashboard/ai-chat-placeholder"
+import { BookOpen, CalendarCheck, ClipboardList, TrendingUp } from "lucide-react"
 
-export default function Page() {
+export default function DashboardPage() {
+  const { user } = useAuth()
+  const { data: stats } = useDashboardSummary()
+  const { data: courses = [] } = useMyCourses()
+  const { data: events = [] } = useTimetable({})
+  const { assessments, isLoading: assessmentsLoading } = useAllAssessments(courses)
+
+  const firstName = user?.name?.split(" ")[0] ?? "there"
+
   return (
     <div className="flex min-h-svh w-full flex-col">
       <Header />
       <Nav />
-      <div className="min-h-svh w-full bg-accent p-5 dark:bg-primary-foreground">
-        <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Hi, Nancy 👋🏾
-            </h2>
-            <p className="truncate text-sm text-muted-foreground">
-              You have 5 tasks due today and 2 live classes starting soon
-            </p>
-          </div>
-          <div className="flex space-x-3">
-            <div className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border p-2 hover:bg-border">
-              <span className="flex rounded-md bg-blue-500/20 p-2">
-                <Presentation className="h-[18px] w-[18px] text-blue-500" />
-              </span>
+      <div className="flex flex-col gap-5 bg-accent p-5 dark:bg-primary-foreground">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Hi, {firstName} 👋</h1>
+          <p className="text-sm text-muted-foreground">
+            {stats?.pendingAssignments ?? 0} pending assignment
+            {stats?.pendingAssignments === 1 ? "" : "s"}
+          </p>
+        </div>
 
-              <div className="flex flex-col">
-                <p className="text-xs font-semibold tracking-tight text-foreground capitalize">
-                  <span className="uppercase">cme 301</span> -{" "}
-                  <span className="max-w-prose">Intro. to Comm</span>
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  Starts in 3 hours
-                </p>
-              </div>
-              <ArrowUpRight size={18} />
-            </div>
-            <div className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-border p-2 hover:bg-border">
-              <span className="flex rounded-md bg-blue-500/20 p-2">
-                <Album className="h-[18px] w-[18px] text-blue-500" />
-              </span>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <StatCard label="Total courses" value={stats?.totalCourses ?? "—"} icon={BookOpen} />
+          <StatCard
+            label="Pending assignments"
+            value={stats?.pendingAssignments ?? "—"}
+            icon={ClipboardList}
+          />
+          <StatCard
+            label="Attendance rate"
+            value={stats ? `${stats.attendanceRatePercent}%` : "—"}
+            icon={CalendarCheck}
+          />
+          <StatCard
+            label="Completed this week"
+            value={stats?.completedThisWeek ?? "—"}
+            icon={TrendingUp}
+          />
+        </div>
 
-              <div className="flex flex-col">
-                <p className="text-xs font-semibold tracking-tight text-foreground capitalize">
-                  <span className="uppercase">cme 301</span> -{" "}
-                  <span className="max-w-prose">Intro. to Comm</span>
-                </p>
-                <p className="truncate text-xs text-muted-foreground">
-                  Starts in 3 hours
-                </p>
-              </div>
-              <ArrowUpRight size={18} />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <TodaysScheduleCard events={events} />
+          <PerformanceOverviewCard courses={courses} />
+          <AssignmentsPanel assessments={assessments} isLoading={assessmentsLoading} />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
+          <ContinueLearningList courses={courses} />
+          <AiChatPlaceholder />
         </div>
       </div>
     </div>
